@@ -36,7 +36,7 @@
             const sectorDropdown = document.getElementById('sector');
             const container = document.getElementById('container');
             const dataOutput = document.getElementById('data-output');
-            const csvUrl = 'https://github.com/edshorthouse/lightcast/blob/28af8670aa9a7685de8cc2e103e6c56436f20b63/suffolk.csv'; // Ensure this CSV file is in the same directory as your HTML file
+            const csvUrl = 'https://raw.githubusercontent.com/edshorthouse/lightcast/28af8670aa9a7685de8cc2e103e6c56436f20b63/suffolk.csv'; // Update the CSV URL
 
             console.log('Fetching CSV:', csvUrl);
 
@@ -140,7 +140,9 @@
                                         }
                                     },
                                     legend: {
-                                        text: 'Year'
+                                        title: {
+                                            text: 'Year'
+                                        }
                                     },
                                     series: updatedSeriesData
                                 });
