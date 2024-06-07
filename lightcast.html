@@ -53,6 +53,7 @@
 
                     Papa.parse(data, {
                         header: true,
+                        skipEmptyLines: true,
                         complete: function (results) {
                             console.log('Parsed CSV Results:', results);
                             const data = results.data;
@@ -75,13 +76,13 @@
 
                             // Function to generate chart data for the selected sector
                             function getChartData(sector) {
-                                const years = ['2017-19', '2020', '2021', '2022', '2023'];
+                                const years = [...new Set(data.map(item => item[''] || item['\uFEFF']))]; // Extract unique years
                                 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                                 const seriesData = years.map(year => {
                                     return {
                                         name: year,
                                         data: months.map(month => {
-                                            const entry = data.find(d => d['Unnamed: 0'] === year && d['Unnamed: 1'] === month);
+                                            const entry = data.find(d => (d[''] || d['\uFEFF']) === year && d['Unnamed: 1'] === month);
                                             console.log(`Year: ${year}, Month: ${month}, Entry: ${entry}`);
                                             return entry ? parseFloat(entry[sector]) : null;
                                         })
