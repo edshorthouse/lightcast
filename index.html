@@ -4,162 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Job Postings by Sector</title>
-    <style>
-        #container {
-            width: 100%;
-            height: 600px;
-        }
-        #filter {
-            margin-bottom: 20px;
-        }
-        #data-output {
-            margin-top: 20px;
-            white-space: pre-wrap; /* Preserve whitespace for formatting */
-        }
-    </style>
+    <link rel="stylesheet" href="lightcast.css">
     <script src="https://code.highcharts.com/highcharts.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/papaparse/5.3.0/papaparse.min.js"></script>
+    <script src="https://code.highcharts.com/modules/accessibility.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 </head>
 <body>
     <div id="filter">
         <label for="sector">Choose a sector:</label>
         <select id="sector">
-            <option value="All Sectors">All Sectors</option>
             <!-- The sector options will be populated dynamically -->
         </select>
     </div>
     <div id="container"></div>
     <div id="data-output"></div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const sectorDropdown = document.getElementById('sector');
-            const container = document.getElementById('container');
-            const dataOutput = document.getElementById('data-output');
-            const csvUrl = 'https://github.com/edshorthouse/lightcast/blob/741e6cc402bd252cd2c79981847f61eaef5daaa5/suffolk.csv'; // Update the CSV URL
-
-            console.log('Fetching CSV:', csvUrl);
-
-            fetch(csvUrl)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok ' + response.statusText);
-                    }
-                    return response.text();
-                })
-                .then(data => {
-                    console.log('Raw CSV data:', data);
-                    dataOutput.textContent = data; // Display raw CSV data
-
-                    Papa.parse(data, {
-                        header: true,
-                        skipEmptyLines: true,
-                        complete: function (results) {
-                            console.log('Parsed CSV Results:', results);
-                            const data = results.data;
-                            if (!data.length) {
-                                console.error('No data found in CSV');
-                                return;
-                            }
-
-                            console.log('Data length:', data.length);
-                            console.log('First row of data:', data[0]);
-
-                            const sectors = Object.keys(data[0]).slice(2); // Get sector names from the CSV headers
-                            console.log('Sectors:', sectors);
-                            sectors.forEach(sector => {
-                                const option = document.createElement('option');
-                                option.value = sector;
-                                option.text = sector;
-                                sectorDropdown.add(option);
-                            });
-
-                            // Function to generate chart data for the selected sector
-                            function getChartData(sector) {
-                                const years = [...new Set(data.map(item => item[''] || item['\uFEFF']))]; // Extract unique years
-                                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-                                const seriesData = years.map(year => {
-                                    return {
-                                        name: year,
-                                        data: months.map(month => {
-                                            const entry = data.find(d => (d[''] || d['\uFEFF']) === year && d['Unnamed: 1'] === month);
-                                            console.log(`Year: ${year}, Month: ${month}, Entry: ${entry}`);
-                                            return entry ? parseFloat(entry[sector]) : null;
-                                        })
-                                    };
-                                });
-                                console.log(`Series Data for sector ${sector}:`, seriesData);
-                                return seriesData;
-                            }
-
-                            // Initial chart with all sectors
-                            const initialSeriesData = getChartData('All Sectors');
-                            console.log('Initial Series Data:', initialSeriesData);
-                            Highcharts.chart(container, {
-                                title: {
-                                    text: 'Total Job Postings for All Sectors (Overlay of Years)'
-                                },
-                                xAxis: {
-                                    categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                                    title: {
-                                        text: 'Month'
-                                    }
-                                },
-                                yAxis: {
-                                    min: 0,
-                                    title: {
-                                        text: 'Number of Job Postings'
-                                    }
-                                },
-                                legend: {
-                                    title: {
-                                        text: 'Year'
-                                    }
-                                },
-                                series: initialSeriesData
-                            });
-
-                            // Update chart when sector changes
-                            sectorDropdown.addEventListener('change', function () {
-                                const selectedSector = sectorDropdown.value;
-                                const updatedSeriesData = getChartData(selectedSector);
-                                console.log(`Updated Series Data for sector ${selectedSector}:`, updatedSeriesData);
-                                Highcharts.chart(container, {
-                                    title: {
-                                        text: `Job Postings for ${selectedSector} (Overlay of Years)`
-                                    },
-                                    xAxis: {
-                                        categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-                                        title: {
-                                            text: 'Month'
-                                        }
-                                    },
-                                    yAxis: {
-                                        min: 0,
-                                        title: {
-                                            text: 'Number of Job Postings'
-                                        }
-                                    },
-                                    legend: {
-                                        title: {
-                                            text: 'Year'
-                                        }
-                                    },
-                                    series: updatedSeriesData
-                                });
-                            });
-                        },
-                        error: function (error) {
-                            console.error('Error parsing CSV:', error);
-                            dataOutput.textContent = 'Error parsing CSV: ' + JSON.stringify(error, null, 2);
-                        }
-                    });
-                })
-                .catch(error => {
-                    console.error('Fetch error:', error);
-                    dataOutput.textContent = 'Fetch error: ' + error.message;
-                });
-        });
-    </script>
+    <script src="lightcast.js"></script>
 </body>
 </html>

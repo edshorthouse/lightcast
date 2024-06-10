@@ -1,0 +1,11 @@
+#container {
+    width: 100%;
+    height: 600px;
+}
+#filter {
+    margin-bottom: 20px;
+}
+#data-output {
+    margin-top: 20px;
+    white-space: pre-wrap; /* Preserve whitespace for formatting */
+}
