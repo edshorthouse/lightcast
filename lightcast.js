@@ -5,12 +5,16 @@ document.addEventListener('DOMContentLoaded', function () {
     const csvUrl = 'https://raw.githubusercontent.com/edshorthouse/lightcast/741e6cc402bd252cd2c79981847f61eaef5daaa5/suffolk.csv';
     const dropdownCsvUrl = 'https://raw.githubusercontent.com/edshorthouse/lightcast/38699eda8b751e50d9c74c8784473c9b5cef8b47/dropdown.csv';
 
-    fetchDropdownData(dropdownCsvUrl, sectorDropdown);
-    fetchCsvData(csvUrl, sectorDropdown, container);
+    fetchDropdownData(dropdownCsvUrl, sectorDropdown)
+    .then(() => fetchCsvData(csvUrl, sectorDropdown, container))
+    .catch(error => {
+        console.error('Initialization error:', error);
+        dataOutput.textContent = 'Initialization error: ' + error.message;
+    });
 });
 
 function fetchDropdownData(url, dropdown) {
-    fetch(url)
+    return fetch(url)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok ' + response.statusText);
@@ -29,6 +33,37 @@ function fetchDropdownData(url, dropdown) {
         .catch(error => {
             console.error('Fetch error:', error);
             document.getElementById('data-output').textContent = 'Fetch error: ' + error.message;
+            throw error; // Re-throw error to propagate to caller
+        });
+}
+
+function fetchCsvData(url, dropdown, container) {
+    return fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok ' + response.statusText);
+            }
+            return response.text();
+        })
+        .then(data => {
+            Papa.parse(data, {
+                header: true,
+                skipEmptyLines: true,
+                complete: function (results) {
+                    console.log('Parsed CSV Data:', results.data);
+                    initializeChart(results.data, dropdown, container);
+                },
+                error: function (error) {
+                    console.error('Error parsing CSV:', error);
+                    document.getElementById('data-output').textContent = 'Error parsing CSV: ' + JSON.stringify(error, null, 2);
+                    throw error; // Re-throw error to propagate to caller
+                }
+            });
+        })
+        .catch(error => {
+            console.error('Fetch error:', error);
+            document.getElementById('data-output').textContent = 'Fetch error: ' + error.message;
+            throw error; // Re-throw error to propagate to caller
         });
 }
 
@@ -47,48 +82,22 @@ function populateDropdown(data, dropdown) {
     });
 }
 
-function fetchCsvData(url, dropdown, container) {
-    fetch(url)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok ' + response.statusText);
-            }
-            return response.text();
-        })
-        .then(data => {
-            // Remove or comment out the line that displays the CSV content
-            // dataOutput.textContent = data;
-            Papa.parse(data, {
-                header: true,
-                skipEmptyLines: true,
-                complete: function (results) {
-                    console.log('Parsed CSV Data:', results.data); // Debug statement
-                    console.log('Keys in first row:', Object.keys(results.data[0])); // Print keys of first row
-                    initializeChart(results.data, dropdown, container);
-                },
-                error: function (error) {
-                    console.error('Error parsing CSV:', error);
-                    document.getElementById('data-output').textContent = 'Error parsing CSV: ' + JSON.stringify(error, null, 2);
-                }
-            });
-        })
-        .catch(error => {
-            console.error('Fetch error:', error);
-            document.getElementById('data-output').textContent = 'Fetch error: ' + error.message;
-        });
-}
-
 function initializeChart(data, dropdown, container) {
-    const initialSeriesData = getChartData(data, dropdown.options[0].value); // Use first sector by default
-    console.log('Initial Series Data:', initialSeriesData); // Debug statement
-    renderChart(container, initialSeriesData, dropdown.options[0].value); // Use first sector by default
+    // Ensure dropdown is populated before accessing its value
+    if (dropdown.options.length > 0) {
+        const initialSeriesData = getChartData(data, dropdown.options[0].value); // Use first sector by default
+        console.log('Initial Series Data:', initialSeriesData); // Debug statement
+        renderChart(container, initialSeriesData, dropdown.options[0].value); // Use first sector by default
 
-    dropdown.addEventListener('change', function () {
-        const selectedSector = dropdown.value;
-        const updatedSeriesData = getChartData(data, selectedSector);
-        console.log(`Updated Series Data for sector ${selectedSector}:`, updatedSeriesData); // Debug statement
-        renderChart(container, updatedSeriesData, selectedSector);
-    });
+        dropdown.addEventListener('change', function () {
+            const selectedSector = dropdown.value;
+            const updatedSeriesData = getChartData(data, selectedSector);
+            console.log(`Updated Series Data for sector ${selectedSector}:`, updatedSeriesData); // Debug statement
+            renderChart(container, updatedSeriesData, selectedSector);
+        });
+    } else {
+        console.error('Dropdown is empty');
+    }
 }
 
 function getChartData(data, sector) {
@@ -124,7 +133,7 @@ function renderChart(container, seriesData, sector) {
             type: 'spline' // Use 'spline' to create smooth lines
         },
         title: {
-            text: `Monthly Job Postings for ${sector}`
+            text: `Monthly Job Postings for ${sector} - Suffolk`
         },
         xAxis: {
             categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
