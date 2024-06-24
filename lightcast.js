@@ -2,12 +2,12 @@ document.addEventListener('DOMContentLoaded', function () {
     const sectorDropdown = document.getElementById('sector');
     const container = document.getElementById('container');
     const dataOutput = document.getElementById('data-output');
-    const tableOutput = document.getElementById('table-output'); // New table output element
+    const downloadLinkOutput = document.getElementById('download-link-output'); // New download link output element
     const csvUrl = 'https://raw.githubusercontent.com/edshorthouse/lightcast/741e6cc402bd252cd2c79981847f61eaef5daaa5/suffolk.csv';
     const dropdownCsvUrl = 'https://raw.githubusercontent.com/edshorthouse/lightcast/38699eda8b751e50d9c74c8784473c9b5cef8b47/dropdown.csv';
 
     fetchDropdownData(dropdownCsvUrl, sectorDropdown)
-    .then(() => fetchCsvData(csvUrl, sectorDropdown, container, tableOutput))
+    .then(() => fetchCsvData(csvUrl, sectorDropdown, container, downloadLinkOutput))
     .catch(error => {
         console.error('Initialization error:', error);
         dataOutput.textContent = 'Initialization error: ' + error.message;
@@ -38,7 +38,7 @@ function fetchDropdownData(url, dropdown) {
         });
 }
 
-function fetchCsvData(url, dropdown, container, tableOutput) {
+function fetchCsvData(url, dropdown, container, downloadLinkOutput) {
     return fetch(url)
         .then(response => {
             if (!response.ok) {
@@ -52,7 +52,7 @@ function fetchCsvData(url, dropdown, container, tableOutput) {
                 skipEmptyLines: true,
                 complete: function (results) {
                     console.log('Parsed CSV Data:', results.data);
-                    initializeChart(results.data, dropdown, container, tableOutput);
+                    initializeChart(results.data, dropdown, container, downloadLinkOutput);
                 },
                 error: function (error) {
                     console.error('Error parsing CSV:', error);
@@ -83,20 +83,20 @@ function populateDropdown(data, dropdown) {
     });
 }
 
-function initializeChart(data, dropdown, container, tableOutput) {
+function initializeChart(data, dropdown, container, downloadLinkOutput) {
     // Ensure dropdown is populated before accessing its value
     if (dropdown.options.length > 0) {
         const initialSeriesData = getChartData(data, dropdown.options[0].value); // Use first sector by default
         console.log('Initial Series Data:', initialSeriesData); // Debug statement
         renderChart(container, initialSeriesData, dropdown.options[0].value); // Use first sector by default
-        renderTable(data, dropdown.options[0].value, tableOutput); // Render the table
+        createDownloadLink(data, dropdown.options[0].value, downloadLinkOutput); // Create download link
 
         dropdown.addEventListener('change', function () {
             const selectedSector = dropdown.value;
             const updatedSeriesData = getChartData(data, selectedSector);
             console.log(`Updated Series Data for sector ${selectedSector}:`, updatedSeriesData); // Debug statement
             renderChart(container, updatedSeriesData, selectedSector);
-            renderTable(data, selectedSector, tableOutput); // Update the table
+            createDownloadLink(data, selectedSector, downloadLinkOutput); // Update download link
         });
     } else {
         console.error('Dropdown is empty');
@@ -184,33 +184,33 @@ function renderChart(container, seriesData, sector) {
     });
 }
 
-function renderTable(data, sector, tableOutput) {
+function createDownloadLink(data, sector, downloadLinkOutput) {
     const yearKey = Object.keys(data[0])[0]; // Assuming the first key is the year
     const monthKey = Object.keys(data[0])[1]; // Assuming the second key is the month
     const years = [...new Set(data.map(item => item[yearKey]))];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
-    // Create the table
-    let tableHtml = '<table>';
-    tableHtml += '<thead><tr><th>Year/Month</th>';
-    months.forEach(month => {
-        tableHtml += `<th>${month}</th>`;
-    });
-    tableHtml += '</tr></thead><tbody>';
+    let csvContent = 'Year/Month,' + months.join(',') + '\n';
 
-    // Populate the table rows with data
     years.forEach(year => {
-        tableHtml += `<tr><td>${year}</td>`;
+        let row = year;
         months.forEach(month => {
             const entry = data.find(d => d[yearKey] === year && d[monthKey] === month);
             const value = entry ? parseFloat(entry[sector]) : '';
-            tableHtml += `<td>${value}</td>`;
+            row += ',' + value;
         });
-        tableHtml += '</tr>';
+        csvContent += row + '\n';
     });
 
-    tableHtml += '</tbody></table>';
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
 
-    // Set the table HTML
-    tableOutput.innerHTML = tableHtml;
+    let link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${sector}_job_postings.csv`);
+    link.textContent = `Download CSV for ${sector}`;
+    
+    // Clear previous link and set new one
+    downloadLinkOutput.innerHTML = '';
+    downloadLinkOutput.appendChild(link);
 }
